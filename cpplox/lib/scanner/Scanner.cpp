@@ -56,7 +56,7 @@ void Scanner::scanToken()
     case '/':
         if (match('/')) {
             while (peek() != '\n' && !isAtEnd())
-                advance();;
+                advance();
         }
         else {
             addToken(TokenType::SLASH);
