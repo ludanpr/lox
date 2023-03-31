@@ -1,0 +1,4 @@
+local_dir := lib/log
+local_src := $(wildcard $(srcdir)/$(local_dir)/*.cpp)
+
+$(eval $(call make-library, $(local_dir)/liblog.a,$(local_src)))

@@ -1,0 +1,99 @@
+# @configure_input@
+
+package = @PACKAGE_NAME@
+version = @PACKAGE_VERSION@
+tarname = @PACKAGE_TARNAME@
+distdir = $(tarname)-$(version)
+
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+bindir = 	@bindir@
+
+# VPATH-specific
+srcdir = @srcdir@
+VPATH  = @srcdir@
+
+# $(call source-to-object, source-file-list)
+source-to-object = $(foreach f,$1,$(subst $(suffix $(f)),.o,$(f)))
+
+# $(subdirectory)
+subdirectory = $(patsubst %/module.mk,%, $(word $(words $(MAKEFILE_LIST)),$(MAKEFILE_LIST)))
+
+# $(call make-library, library-name, source-file-list)
+define make-library
+libraries += $1
+sources   += $2
+objects   += $(call source-to-object,$2)
+
+$1: $(call source-to-object,$2)
+	$(AR) $(ARFLAGS) $$@ $$^
+endef
+
+
+modules := lib/scanner lib/log src #test
+
+programs  :=
+libraries :=
+sources   :=
+test_pgms :=
+objects   :=
+dependencies = $(subst .o,.d,$(objects))
+
+include_dirs := include
+CPPFLAGS += $(addprefix -I,$(addprefix $(srcdir)/,$(include_dirs)))
+vpath %.h include_dirs
+
+CP    := cp
+MV    := mv
+RM    := rm -f
+SED   := sed
+CD    := cd
+MKDIR := mkdir -p
+
+
+all:
+
+include $(addsuffix /module.mk,$(modules))
+
+.PHONY: all
+all: $(programs)
+
+.PHONY: libraries
+libraries: $(libraries)
+
+.PHONY: clean
+clean:
+	$(RM) $(objects) $(programs) $(libraries) $(dependencies)
+
+ifneq ($(MAKECMDGOALS),clean)
+    include $(dependencies)
+endif
+
+
+%.d: %.cpp
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -M $< |           \
+	$(SED) 's,\($(notdir $*)\.o\) *:,$(dir $@)\1 $@: ,' > $@.tmp
+	$(MV) $@.tmp $@
+
+.PHONY: check
+check: $(addprefix test/,$(test_pgms))
+	@$(foreach t,$^,$(t);)
+
+.PHONY: dist
+dist: $(distdir).tar.gz
+
+$(distdir).tar.gz: $(distdir)
+
+$(distdir): FORCE
+
+
+.PHONY: FORCE
+FORCE:
+	$(RM) $(distdir).tar.gz
+	$(RM) -r $(distdir)
+
+Makefile: Makefile.in config.status
+	./config.status $@
+
+config.status: configure
+	./config.status --recheck

@@ -1,0 +1,11 @@
+local_dir := src
+local_pgms := $(addprefix $(local_dir)/,Lox)
+
+local_src := $(addprefix $(srcdir)/,$(addsuffix .cpp,$(local_pgms)))
+
+programs += $(local_pgms)
+objects += $(addsuffix .o,$(local_pgms))
+sources += $(local_src)
+
+$(local_pgms): $(addsuffix .o,$@) $(libraries)
+
