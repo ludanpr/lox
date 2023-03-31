@@ -90,6 +90,8 @@ private:
     void number();
     void identifier();
 
+    void cstyle_block_comment();
+
     bool isAtEnd() const
     {
         return _current >= _source.length();

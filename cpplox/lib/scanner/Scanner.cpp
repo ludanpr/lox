@@ -58,6 +58,9 @@ void Scanner::scanToken()
             while (peek() != '\n' && !isAtEnd())
                 advance();
         }
+        else if (match('*')) {
+            cstyle_block_comment();
+        }
         else {
             addToken(TokenType::SLASH);
         }
@@ -134,9 +137,9 @@ void Scanner::identifier()
 }
 
 /**
- * @brief Looking past the decimal point of a number requires a
- * second character of lookahead since we don't want to consume
- * the '.' until we're sure there is a digit after it.
+ * @brief Looking past the decimal point of a number, for instance,
+ * requires a second character of lookahead since we don't want to
+ * consume the '.' until we're sure there is a digit after it.
  */
 char Scanner::peekNext() const
 {
@@ -144,6 +147,65 @@ char Scanner::peekNext() const
         return '\0';
     return _source.at(_current + 1);
 }
+
+void Scanner::cstyle_block_comment()
+{
+    for (size_t notterminatedblocks { 1 }; notterminatedblocks;) {
+        if (isAtEnd()) {
+            error(_line, "Unterminated block comment (/* ... */)");
+            return;
+        }
+
+        if (peek() == '/' && peekNext() == '*') {
+            advance();
+            advance();
+            notterminatedblocks++;
+            continue;
+        }
+        if (peek() == '*' && peekNext() == '/') {
+            advance();
+            advance();
+            notterminatedblocks--;
+            continue;
+        }
+
+        if (peek() == '\n')
+            _line++;
+
+        advance();
+    }
+
+}
+
+// void Scanner::cstyle_block_comment(size_t notfinishedblocks)
+// {
+//     if (!notfinishedblocks)
+//         return;
+
+//     while (peek() != '*' && peek() != '/' && !isAtEnd()) {
+//         if (peek() == '\n')
+//             _line++;
+
+//         advance();
+//     }
+
+//     if (isAtEnd()) {
+//         error(_line, "Unterminated block comment (/* ... */)");
+//         return;
+//     }
+//     else if (match('*')) {
+//         if (match('/'))
+//             cstyle_block_comment(notfinishedblocks - 1);
+//         else
+//             cstyle_block_comment(notfinishedblocks);
+//     }
+//     else if (match('/')) {
+//         if (match('*'))
+//             cstyle_block_comment(notfinishedblocks + 1);
+//         else
+//             cstyle_block_comment(notfinishedblocks);
+//     }
+// }
 
 bool Scanner::match(char expected)
 {
