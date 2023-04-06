@@ -122,6 +122,8 @@
             "};"                                   nl))))
 
 (define (generate-source-file root namespace filename)
+  (if (not (assoc root ast))
+      (error (string-append "node " root " not in AST")))
   (call-with-output-file filename
     (lambda (output-port)
       (let ((intro (string-append
