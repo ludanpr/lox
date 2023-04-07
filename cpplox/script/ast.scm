@@ -1,49 +1,49 @@
 ; Generate AST
 ;
 
-(define ast '(("Expr" ("Assign"   (("Token" "name")
-                                   ("Expr" "value")))
-                      ("Binary"   (("Expr" "left")
-                                   ("Token" "operator")
-                                   ("Expr" "right")))
-                      ("Call"     (("Expr" "callee")
-                                   ("Token" "paren")
-                                   ("std::vector<Expr>" "args")))
-                      ("Get"      (("Expr" "object")
-                                   ("Token" "name")))
-                      ("Grouping" (("Expr" "expression")))
-                      ("Literal"  (("Literal" "value")))
-                      ("Logical"  (("Expr" "left")
-                                   ("Token" "operator")
-                                   ("Expr" "right")))
-                      ("Set"      (("Expr" "object")
-                                   ("Token" "name")
-                                   ("Expr" "value")))
-                      ("Super"    (("Token" "keyword")
-                                   ("Token" "method")))
-                      ("This"     (("Token" "keyword")))
-                      ("Unary"    (("Token" "operator")
-                                   ("Expr" "right")))
-                      ("Variable" (("Token" "name"))))
+(define ast '(("Expr" ("Assign"   (("std::shared_ptr<Token>" "name")
+                                   ("std::shared_ptr<Expr>" "value")))
+                      ("Binary"   (("std::shared_ptr<Expr>" "left")
+                                   ("std::shared_ptr<Token>" "op")
+                                   ("std::shared_ptr<Expr>" "right")))
+                      ("Call"     (("std::shared_ptr<Expr>" "callee")
+                                   ("std::shared_ptr<Token>" "paren")
+                                   ("std::vector<std::shared_ptr<Expr>>" "args")))
+                      ("Get"      (("std::shared_ptr<Expr>" "object")
+                                   ("std::shared_ptr<Token>" "name")))
+                      ("Grouping" (("std::shared_ptr<Expr>" "expression")))
+                      ("Literal"  (("Literal" "&value")))
+                      ("Logical"  (("std::shared_ptr<Expr>" "left")
+                                   ("std::shared_ptr<Token>" "op")
+                                   ("std::shared_ptr<Expr>" "right")))
+                      ("Set"      (("std::shared_ptr<Expr>" "object")
+                                   ("std::shared_ptr<Token>" "name")
+                                   ("std::shared_ptr<Expr>" "value")))
+                      ("Super"    (("std::shared_ptr<Token>" "keyword")
+                                   ("std::shared_ptr<Token>" "method")))
+                      ("This"     (("std::shared_ptr<Token>" "keyword")))
+                      ("Unary"    (("std::shared_ptr<Token>" "op")
+                                   ("std::shared_ptr<Expr>" "right")))
+                      ("Variable" (("std::shared_ptr<Token>" "name"))))
 
-              ("Stmt" ("Block"      (("std::vector<Stmt>" "statements")))
-                      ("Class"      (("Token" "name")
-                                     ("Expr::Variable" "superclass")
-                                     ("std::vector<Function>" "methods")))
-                      ("Expression" (("Expr" "expression")))
-                      ("Function"   (("Token" "name")
-                                     ("std::vector<Token>" "params")
-                                     ("std::vector<Stmt>" "body")))
-                      ("If"         (("Expr" "condition")
-                                     ("Stmt" "thenbranch")
-                                     ("Stmt" "elsebranch")))
-                      ("Print"      (("Expr" "expression")))
-                      ("Return"     (("Token" "keyword")
-                                     ("Expr" "value")))
-                      ("Var"        (("Token" "name")
-                                     ("Expr" "initializer")))
-                      ("While"      (("Expr" "condition")
-                                     ("Stmt" "body"))))))
+              ("Stmt" ("Block"      (("std::vector<std::shared_ptr<Stmt>>" "statements")))
+                      ("Class"      (("std::shared_ptr<Token>" "name")
+                                     ("VariableExpr" "&superclass")
+                                     ("std::vector<FunctionStmt>" "methods")))
+                      ("Expression" (("std::shared_ptr<Expr>" "expression")))
+                      ("Function"   (("std::shared_ptr<Token>" "name")
+                                     ("std::vector<std::shared_ptr<Token>>" "params")
+                                     ("std::vector<std::shared_ptr<Stmt>>" "body")))
+                      ("If"         (("std::shared_ptr<Expr>" "condition")
+                                     ("std::shared_ptr<Stmt>" "thenbranch")
+                                     ("std::shared_ptr<Stmt>" "elsebranch")))
+                      ("Print"      (("std::shared_ptr<Expr>" "expression")))
+                      ("Return"     (("std::shared_ptr<Token>" "keyword")
+                                     ("std::shared_ptr<Expr>" "value")))
+                      ("Var"        (("std::shared_ptr<Token>" "name")
+                                     ("std::shared_ptr<Expr>" "initializer")))
+                      ("While"      (("std::shared_ptr<Expr>" "condition")
+                                     ("std::shared_ptr<Stmt>" "body"))))))
 
 (define nl "\n")
 
@@ -54,7 +54,7 @@
   (let ((str (make-string 0)))
     (for-each (lambda (visitor)
                 (set! str (string-append str
-                                         "        T visit" visitor root "(" visitor root ") = 0;" nl)))
+                                         "        virtual void visit" visitor root "(" visitor root "&) = 0;" nl)))
               (map car (get-branches root ast)))
     str))
 
@@ -62,43 +62,70 @@
   (apply string-append
          (list
           "class " root " {" nl
-          "    template<typename T>" nl
-          "    class Visitor<T> {"   nl
+          "public:"          nl
+          "    class Visitor {"   nl
+          "    public:"           nl
           (generate-all-visitors root)
-          "    }"                    nl
-          "    template<typename T>" nl
-          "    virtual T accept(Visitor<T>) = 0;" nl
+          "    };"                    nl
+          "    virtual void accept(Visitor &) = 0;" nl
           "};"                                   nl)))
 
 
-(define (%type-var-list-str lst sep identation with-underscore with-newline reference)
-  (let ((str (make-string 0)))
+(define (remove-first-char-if-char=? str c)
+  (let ((str-as-list (string->list str)))
+    (if (char=? (car str-as-list) c)
+        (substring str 1)
+        str)))
+
+(define (%type-var-list-str lst sep sep-at-end? identation with-underscore with-newline reference?)
+  (let* ((var-ref-or-not (if reference?
+                             (lambda (name) name)
+                             (lambda (name)
+                               (remove-first-char-if-char=? name #\&))))
+         (%sep (if sep-at-end?
+                   sep
+                   ""))
+        (str (make-string 0)))
     (for-each (lambda (x)
                 (set! str (apply string-append
                                  str
-                                 (list identation (car x) reference
-                                       with-underscore (cadr x) sep with-newline))))
+                                 (if sep-at-end?
+                                     (list identation (car x) " "
+                                           (var-ref-or-not (cadr x)) with-underscore sep with-newline)
+                                     (list identation %sep (car x) " "
+                                            (var-ref-or-not (cadr x)) with-underscore with-newline))))
+                (set! %sep sep))
               lst)
     str))
 
 (define (parameter-list-str lst)
-  (%type-var-list-str lst ", " "" " " "" "&"))
+  (%type-var-list-str lst ", " #f "" "" "" #t))
 
 (define (member-declaration-str lst)
-  (%type-var-list-str lst ";" "    "  " _" nl ""))
+  (%type-var-list-str lst ";" #t "    "  "_" nl #f))
 
 (define (member-assignment-str lst)
   (let ((str (make-string 0)))
     (for-each (lambda (x)
-                (let ((name (cadr x)))
+                (let ((name (remove-first-char-if-char=? (cadr x) #\&)))
                   (set! str (apply string-append
                              str
-                             (list "        _" name " = " name ";" nl)))))
+                             (list "        " name "_ = " name ";" nl)))))
               lst)
     str))
 
+(define (forward-class-declarations root)
+  (let ((nodes (map car (get-branches root ast)))
+        (str (make-string 0)))
+    (for-each (lambda (node)
+                (set! str (apply string-append
+                                 str
+                                 (list "class " node root ";" nl))))
+              nodes)
+    str))
+
 ;;; Takes a branch like:
-;;;  `("Assign" (("Token" "name") ("Expr" "value")))'
+;;;  `("Assign" (("std::shared_ptr<Token>" "name") ("std::shared_ptr<Expr>" "value")))'
 ;;; and generates its correspondent C++ derived class.
 ;;;
 (define (generate-branch-class root branch)
@@ -108,14 +135,14 @@
            (list
             "class " node root " : public " root " {" nl
             "public:" nl
+            "    " node root "() = default;" nl nl
             "    " node root "(" (parameter-list-str vars) ")" nl
             "    {" nl
             (member-assignment-str vars)
             "    }" nl
-            "    template<typename T>" nl
-            "    T accept(Visitor<T> visitor) override" nl
+            "    void accept(Visitor &visitor) override" nl
             "    {" nl
-            "        return visitor.visit" node root "(this);" nl
+            "        visitor.visit" node root "(*this);" nl
             "    }" nl
             "private:" nl
             (member-declaration-str vars)
@@ -128,9 +155,13 @@
     (lambda (output-port)
       (let ((intro (string-append
                     "// File generated by script/ast.scm" nl nl
+                    "#ifndef LOX_" root "_H_"             nl
+                    "#define LOX_" root "_H_"             nl nl
                     "#include <scanner/Token.h>"          nl nl
-                    "namespace " namespace " {"           nl nl))
-            (outro (string-append "}" nl)))
+                    "namespace " namespace " {"           nl nl
+                    (forward-class-declarations root)     nl nl))
+            (outro (string-append "}" nl nl
+                                  "#endif" nl)))
         (display intro output-port)
         (display (generate-root root) output-port)
         (display nl output-port)
