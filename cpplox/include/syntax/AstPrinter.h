@@ -57,10 +57,10 @@ private:
 
     void parenthesize(std::string name, std::initializer_list<std::shared_ptr<Expr>> exprs);
 
-    // TODO
     template<typename... Args>
     void parenthesize2(std::string name, Args... args);
 
+    // TODO
     template<typename... Args>
     void transform(Args... args);
 };

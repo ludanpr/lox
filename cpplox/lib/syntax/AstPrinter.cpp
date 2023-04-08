@@ -165,9 +165,11 @@ void AstPrinter::parenthesize(std::string name, std::initializer_list<std::share
 }
 
 template<typename... Args>
-void AstPrinter::parenthesize2(std::string name, Args... args)
+void AstPrinter::parenthesize2(std::string name, Args... parts)
 {
-    os_ << "Unimplemented";
+    os_ << "(" << name;
+    transform(parts...);
+    os_ << ")";
 }
 
 template<typename... Args>
