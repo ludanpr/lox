@@ -12,7 +12,7 @@
                       ("Get"      (("std::shared_ptr<Expr>" "object")
                                    ("std::shared_ptr<Token>" "name")))
                       ("Grouping" (("std::shared_ptr<Expr>" "expression")))
-                      ("Literal"  (("Literal" "&value")))
+                      ("Literal"  (("std::shared_ptr<Literal>" "value")))
                       ("Logical"  (("std::shared_ptr<Expr>" "left")
                                    ("std::shared_ptr<Token>" "op")
                                    ("std::shared_ptr<Expr>" "right")))
@@ -28,8 +28,8 @@
 
               ("Stmt" ("Block"      (("std::vector<std::shared_ptr<Stmt>>" "statements")))
                       ("Class"      (("std::shared_ptr<Token>" "name")
-                                     ("VariableExpr" "&superclass")
-                                     ("std::vector<FunctionStmt>" "methods")))
+                                     ("std::shared_ptr<VariableExpr>" "superclass")
+                                     ("std::vector<std::shared_ptr<FunctionStmt>>" "methods")))
                       ("Expression" (("std::shared_ptr<Expr>" "expression")))
                       ("Function"   (("std::shared_ptr<Token>" "name")
                                      ("std::vector<std::shared_ptr<Token>>" "params")
@@ -104,15 +104,27 @@
 (define (member-declaration-str lst)
   (%type-var-list-str lst ";" #t "    "  "_" nl #f))
 
-(define (member-assignment-str lst)
+(define (%member-list-str lst fmtfn)
   (let ((str (make-string 0)))
     (for-each (lambda (x)
-                (let ((name (remove-first-char-if-char=? (cadr x) #\&)))
+                (let ((type (car x))
+                      (name (remove-first-char-if-char=? (cadr x) #\&)))
                   (set! str (apply string-append
-                             str
-                             (list "        " name "_ = " name ";" nl)))))
+                                   str
+                                   (fmtfn type name)))))
               lst)
     str))
+
+(define (member-functions-get-str lst)
+  (%member-list-str lst (lambda (type name)
+                          (list "    " type " " name "() const" nl
+                                "    {"                          nl
+                                "        return " name "_;"      nl
+                                "    }" nl))))
+
+(define (member-assignment-str lst)
+  (%member-list-str lst (lambda (type name)
+                          (list "        " name "_ = " name ";" nl))))
 
 (define (forward-class-declarations root)
   (let ((nodes (map car (get-branches root ast)))
@@ -136,6 +148,7 @@
             "class " node root " : public " root " {" nl
             "public:" nl
             "    " node root "() = default;" nl nl
+            "    ~" node root "() {}"        nl nl
             "    " node root "(" (parameter-list-str vars) ")" nl
             "    {" nl
             (member-assignment-str vars)
@@ -143,7 +156,8 @@
             "    void accept(Visitor &visitor) override" nl
             "    {" nl
             "        visitor.visit" node root "(*this);" nl
-            "    }" nl
+            "    }" nl nl
+            (member-functions-get-str vars)
             "private:" nl
             (member-declaration-str vars)
             "};"                                   nl))))
