@@ -30,7 +30,7 @@ $1: $(call source-to-object,$2)
 endef
 
 
-modules := lib/scanner lib/log src #test
+modules := lib/syntax lib/scanner lib/log src #test
 
 programs  :=
 libraries :=

@@ -11,6 +11,8 @@
 #include <memory>
 
 #include <scanner/Scanner.h>
+//
+#include <syntax/AstPrinter.h>
 
 static std::unique_ptr<Lox::Scanner> run(std::string);
 static void runFile(std::string);
@@ -61,16 +63,29 @@ static std::unique_ptr<Lox::Scanner> run(std::string source)
 }
 
 
-int main(int argc, char *argv[])
+// int main(int argc, char *argv[])
+// {
+//     if (argc > 2) {
+//         std::cout << "Usage: cpplox [script]" << std::endl;
+//         return EXIT_FAILURE;
+//     }
+//     else if (argc == 2) {
+//         runFile(argv[1]);
+//     }
+//     else {
+//         runPrompt();
+//     }
+// }
+
+int main(void)
 {
-    if (argc > 2) {
-        std::cout << "Usage: cpplox [script]" << std::endl;
-        return EXIT_FAILURE;
-    }
-    else if (argc == 2) {
-        runFile(argv[1]);
-    }
-    else {
-        runPrompt();
-    }
+    auto expression { std::make_shared<Lox::BinaryExpr>(
+                std::make_shared<Lox::UnaryExpr>(std::make_shared<Lox::Token>(Lox::TokenType::MINUS, "-", Lox::Literal{}, 1),
+                                                 std::make_shared<Lox::LiteralExpr>(std::make_shared<Lox::NumberLiteral>("123"))),
+            std::make_shared<Lox::Token>(Lox::TokenType::STAR, "*", Lox::Literal{}, 1),
+                std::make_shared<Lox::GroupingExpr>(std::make_shared<Lox::LiteralExpr>(std::make_shared<Lox::NumberLiteral>("45.67"))))
+    };
+
+    Lox::AstPrinter printer { std::cout };
+    printer.print(expression);
 }

@@ -9,6 +9,8 @@
 
 #include <string>
 #include <utility>
+#include <memory>
+#include <vector>
 
 namespace Lox {
 
@@ -30,6 +32,8 @@ public:
     {
         _literal = std::move(literal);
     }
+
+    ~StringLiteral() {}
 };
 
 struct NumberLiteral : public Literal {
@@ -38,6 +42,8 @@ public:
     {
         _literal = std::move(literal);
     }
+
+    ~NumberLiteral() {}
 
     double asNumber() const
     {
@@ -52,6 +58,8 @@ public:
     {
         _literal = std::move(literal);
     }
+
+    ~Identifier() {}
 };
 
 enum class TokenType : std::uint16_t {
@@ -113,10 +121,16 @@ public:
         : _type { type }, _lexeme { std::move(lexeme) }, _literal { literal }, _line { line }
     {
     }
+    ~Token() {}
 
     std::string toString()
     {
         return to_string(_type) + " " + _lexeme + " " + _literal.get() + " "  + std::to_string(_line);
+    }
+
+    std::string lexeme() const
+    {
+        return _lexeme;
     }
 
 private:

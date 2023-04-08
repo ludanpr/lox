@@ -1,0 +1,4 @@
+local_dir := lib/syntax
+local_src := $(wildcard $(srcdir)/$(local_dir)/*.cpp)
+
+$(eval $(call make-library, $(local_dir)/libsyntax.a,$(local_src)))

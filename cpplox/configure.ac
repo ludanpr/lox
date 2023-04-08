@@ -29,6 +29,7 @@ AC_TYPE_SIZE_T
 AC_CONFIG_FILES([Makefile
   src/module.mk
   lib/log/module.mk
-  lib/scanner/module.mk])
+  lib/scanner/module.mk
+  lib/syntax/module.mk])
 
 AC_OUTPUT

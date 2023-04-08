@@ -4232,7 +4232,7 @@ printf "%s\n" "#define size_t unsigned int" >>confdefs.h
 fi
 
 
-ac_config_files="$ac_config_files Makefile src/module.mk lib/log/module.mk lib/scanner/module.mk"
+ac_config_files="$ac_config_files Makefile src/module.mk lib/log/module.mk lib/scanner/module.mk lib/syntax/module.mk"
 
 
 cat >confcache <<\_ACEOF
@@ -4939,6 +4939,7 @@ do
     "src/module.mk") CONFIG_FILES="$CONFIG_FILES src/module.mk" ;;
     "lib/log/module.mk") CONFIG_FILES="$CONFIG_FILES lib/log/module.mk" ;;
     "lib/scanner/module.mk") CONFIG_FILES="$CONFIG_FILES lib/scanner/module.mk" ;;
+    "lib/syntax/module.mk") CONFIG_FILES="$CONFIG_FILES lib/syntax/module.mk" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac
